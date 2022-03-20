@@ -53,7 +53,7 @@ class UnivariateGaussian:
         estimator is either biased or unbiased). Then sets `self.fitted_` attribute to `True`
         """
         self.mu_ = np.mean(X)
-        self.var_ = np.var(X, ddof=int(self.biased_))
+        self.var_ = np.var(X, ddof=int(not self.biased_))
         self.fitted_ = True
         return self
 
