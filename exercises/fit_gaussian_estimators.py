@@ -68,9 +68,8 @@ def test_multivariate_gaussian():
     fig = px.imshow(result,
                     labels=labels,
                     x=xaxis,
-                    y=yaxis
-                    )
-    fig.update_layout(title_text="Q6- Multivariate Gaussian Estimator<br><sub>"
+                    y=yaxis)
+    fig.update_layout(title_text="Q5- Multivariate Gaussian Estimator<br><sub>"
                                  "Log-Likelihood of expectation [f1,0,f3,0] "
                                  " while f1,f2 are values from -10 to 10 with "
                                  "samples from expectation [0,0,4,0]</br></sub>",
