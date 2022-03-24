@@ -185,17 +185,17 @@ class MultivariateGaussian:
         X_mu = np.subtract(X, self.mu_)
         trans = np.transpose(X_mu)
         inverse = inv(self.cov_)
-        second_exp = np.exp(-0.5 * trans * inverse * X_mu)
+        second_exp = np.exp(-0.5 * trans @ inverse @ X_mu)
         return first_exp * second_exp
 
     @staticmethod
-    def calc_exp(mu: np.ndarray, cov: np.ndarray, X: np.ndarray):
+    def calc_exp(mu: np.ndarray, cov: np.ndarray, x: np.ndarray):
         inverse = inv(cov)
-        x_mu = np.subtract(X, mu)
-        return np.transpose(x_mu) * inverse * x_mu
+        x_mu = np.subtract(x, mu)
+        return np.transpose(x_mu) @ inverse @ x_mu
 
     @staticmethod
-    def log_likelihood(mu: np.ndarray, cov: np.ndarray, X: np.ndarray) -> float:
+    def log_likelihood(X, mu: np.ndarray, cov: np.ndarray) -> float:
         """
         Calculate the log-likelihood of the data under a specified Gaussian model
 
@@ -215,7 +215,11 @@ class MultivariateGaussian:
         """
         d = np.shape(X)[1]
         m = np.shape(X)[0]
-        inverse = inv(cov)
         det_cov = det(cov)
-        return -(d * m) * 0.5 * m * 0.5 * np.log(det_cov) * 0.5 * \
-               np.apply_along_axis(MultivariateGaussian.calc_exp(mu, cov, X))
+        func_sub = lambda x: np.subtract(x, mu)
+        x_mu = np.apply_along_axis(func_sub, 1, X)
+        return -(d * m) * 0.5 - m * 0.5 * np.log(det_cov) - 0.5 * \
+                np.sum(x_mu @ inv(cov) * x_mu)
+
+
+
