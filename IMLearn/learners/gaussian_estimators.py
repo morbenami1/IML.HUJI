@@ -103,10 +103,9 @@ class UnivariateGaussian:
         log_likelihood: float
             log-likelihood calculated
         """
-        power_sigma = np.power(sigma, 2)
-        first_arg = np.log(1 / (np.sqrt(2 * np.pi * power_sigma)))
-        sum_numbers = np.sum(np.power(np.subtract(X, mu), 2))
-        second_arg = (-1 / (2 * power_sigma)) * sum_numbers
+        first_arg = X.shape[0] * np.log(1 / (np.sqrt(2 * np.pi * sigma)))
+        sum_numbers = np.sum(np.power(X-mu, 2))
+        second_arg = (-1 / (2 * sigma)) * sum_numbers
         return first_arg + second_arg
 
 
