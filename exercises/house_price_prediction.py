@@ -7,6 +7,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 import plotly.io as pio
+
+
 pio.templates.default = "simple_white"
 
 
@@ -23,7 +25,47 @@ def load_data(filename: str):
     Design matrix and response vector (prices) - either as a single
     DataFrame or a Tuple[DataFrame, Series]
     """
-    raise NotImplementedError()
+    df = pd.read_csv(filename).drop_duplicates().dropna()
+
+    # Drop not needed features
+    df.drop(['id'], axis=1, inplace=True)
+    df.drop(['lat'], axis=1, inplace=True)
+    df.drop(['long'], axis=1, inplace=True)
+
+    # Edit date to datetime pandas
+    df['date'] = pd.to_datetime(df['date'], format="%Y%m%dT%f", errors='coerce')
+
+    # only positive numbers
+    lst = ["price", "sqft_living", "sqft_lot", "sqft_above", "yr_built",
+           "sqft_living15", "sqft_lot15", "bathrooms",
+           "floors"]
+    for feature in lst:
+        df = df[df[feature] > 0]
+
+    # checks where there is a basement
+    df['has_basement'] = np.where(df['sqft_basement'] > 0, 1, 0)
+
+    # renovated in the last 10 years
+    df['new_renovation'] = np.where(pd.DatetimeIndex(df['date']).year - df['yr_renovated'] < 10, 1, 0)
+    df.drop(['date'], axis=1,inplace=True)
+
+    # Edit Zip-code to dummies
+    df = pd.get_dummies(df, columns=['zipcode'])
+
+
+    # drop Nan to make sure
+    df.dropna(axis=1, inplace=True)
+    # print(df['price'].isna().sum())
+    # print(df)
+    # df.to_csv("../try.csv")
+    return df.drop("price", axis=1), df.price
+
+
+def calc_pearson_correlation(feature, y):
+    feature_st = np.std(feature)
+    y_st = np.std(y)
+    covariance = np.cov(feature, y)
+    return covariance[0, 1]/(feature_st*y_st)
 
 
 def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") -> NoReturn:
@@ -43,19 +85,34 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
     output_path: str (default ".")
         Path to folder in which plots are saved
     """
-    raise NotImplementedError()
+    # TODO check
+    # X = X.loc[:, ~(X.columns.str.contains('zipcode_'))].drop(['date'], axis=1)
+    for feature in X:
+        name = feature.capitalize()
+        pearsonCorrelation = calc_pearson_correlation(X[feature], y)
+        fig = px.scatter(pd.DataFrame({'x': X[feature], 'y': y}),
+                         x="x",
+                         y="y",
+                         title=f"Correlation Between {name} feature values and "
+                               f"response <br><sub> Pearson Correlation"
+                               f" {pearsonCorrelation}",
+                         labels={"x": f"{name} Values",
+                                 "y": "Response Values"})
+        pio.write_image(fig, output_path+"/"+name+".png")
+    # print(X)
+    print()
 
 
 if __name__ == '__main__':
     np.random.seed(0)
     # Question 1 - Load and preprocessing of housing prices dataset
-    raise NotImplementedError()
+    data, y = load_data("../datasets/house_prices.csv")
 
     # Question 2 - Feature evaluation with respect to response
-    raise NotImplementedError()
+    # feature_evaluation(data, y, r'C:\Users\moric\Documents\CS\year2\B\IML\projects\ex2\graphs')
 
     # Question 3 - Split samples into training- and testing sets.
-    raise NotImplementedError()
+    train_X, train_y, test_X, test_y = split_train_test(data, y, train_proportion=0.75)
 
     # Question 4 - Fit model over increasing percentages of the overall training data
     # For every percentage p in 10%, 11%, ..., 100%, repeat the following 10 times:
