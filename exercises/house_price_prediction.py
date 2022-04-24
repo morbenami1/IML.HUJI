@@ -8,7 +8,6 @@ import plotly.graph_objects as go
 import plotly.express as px
 import plotly.io as pio
 
-
 pio.templates.default = "simple_white"
 
 
@@ -41,23 +40,18 @@ def load_data(filename: str):
            "floors"]
     for feature in lst:
         df = df[df[feature] > 0]
-
     # checks where there is a basement
     df['has_basement'] = np.where(df['sqft_basement'] > 0, 1, 0)
-
     # renovated in the last 10 years
     df['new_renovation'] = np.where(pd.DatetimeIndex(df['date']).year - df['yr_renovated'] < 10, 1, 0)
-    df.drop(['date'], axis=1,inplace=True)
+    # drop date
+    df.drop(['date'], axis=1, inplace=True)
 
     # Edit Zip-code to dummies
     df = pd.get_dummies(df, columns=['zipcode'])
 
-
     # drop Nan to make sure
     df.dropna(axis=1, inplace=True)
-    # print(df['price'].isna().sum())
-    # print(df)
-    # df.to_csv("../try.csv")
     return df.drop("price", axis=1), df.price
 
 
@@ -65,7 +59,7 @@ def calc_pearson_correlation(feature, y):
     feature_st = np.std(feature)
     y_st = np.std(y)
     covariance = np.cov(feature, y)
-    return covariance[0, 1]/(feature_st*y_st)
+    return covariance[0, 1] / (feature_st * y_st)
 
 
 def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") -> NoReturn:
@@ -85,8 +79,6 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
     output_path: str (default ".")
         Path to folder in which plots are saved
     """
-    # TODO check
-    # X = X.loc[:, ~(X.columns.str.contains('zipcode_'))].drop(['date'], axis=1)
     for feature in X:
         name = feature.capitalize()
         pearsonCorrelation = calc_pearson_correlation(X[feature], y)
@@ -98,9 +90,7 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
                                f" {pearsonCorrelation}",
                          labels={"x": f"{name} Values",
                                  "y": "Response Values"})
-        pio.write_image(fig, output_path+"/"+name+".png")
-    # print(X)
-    print()
+        pio.write_image(fig, output_path + "/" + name + ".png")
 
 
 if __name__ == '__main__':
@@ -109,10 +99,11 @@ if __name__ == '__main__':
     data, y = load_data("../datasets/house_prices.csv")
 
     # Question 2 - Feature evaluation with respect to response
-    # feature_evaluation(data, y, r'C:\Users\moric\Documents\CS\year2\B\IML\projects\ex2\graphs')
+    feature_evaluation(data, y, r'C:\Users\moric\Documents\CS\year2\B\IML\projects\ex2\graphs')
 
     # Question 3 - Split samples into training- and testing sets.
-    train_X, train_y, test_X, test_y = split_train_test(data, y, train_proportion=0.75)
+    train_X, train_y, test_X, test_y = split_train_test(data, y,
+                                                        train_proportion=0.75)
 
     # Question 4 - Fit model over increasing percentages of the overall training data
     # For every percentage p in 10%, 11%, ..., 100%, repeat the following 10 times:
@@ -121,4 +112,35 @@ if __name__ == '__main__':
     #   3) Test fitted model over test set
     #   4) Store average and variance of loss over test set
     # Then plot average loss as function of training size with error ribbon of size (mean-2*std, mean+2*std)
-    raise NotImplementedError()
+    precent = np.linspace(10, 100, 91)
+    mean_pred, var_pred = np.array([]), np.array([])
+    train = train_X.join(train_y)
+
+    for p in precent:
+        lst = np.array([])
+        for test in range(10):
+            p_data = train.sample(frac=p / 100)
+            t_x, t_y = p_data.drop("price", axis=1), p_data.price
+            estimator = LinearRegression()
+            estimator.fit(t_x.to_numpy(), t_y.to_numpy())
+            loss = estimator.loss(test_X.to_numpy(), test_y.to_numpy())
+            lst = np.append(lst, loss)
+
+        mean_pred = np.append(mean_pred, np.mean(lst))
+        var_pred = np.append(var_pred, np.std(lst))
+
+    fig = go.Figure(
+        (go.Scatter(x=precent, y=mean_pred, mode="markers+lines", name="Mean Prediction", line=dict(dash="dash"),
+                    marker=dict(color="green", opacity=.7),
+                    ),
+         go.Scatter(x=precent, y=mean_pred - (2 * var_pred), fill=None, mode="lines", line=dict(color="lightgrey"),
+                    showlegend=False),
+         go.Scatter(x=precent, y=mean_pred + 2 * var_pred, fill='tonexty', mode="lines", line=dict(color="lightgrey"),
+                    showlegend=False),))
+
+    st = "Linear regression model over increasing percentages of the " \
+         "training set and the loss over the test set"
+    fig.update_layout(title=st+"<br><sup>",
+                      xaxis={'title': 'Percentage'},
+                      yaxis={'title': 'MSE over ten iterations'}, title_x=0.5, title_font_size=15)
+    fig.show()

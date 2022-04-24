@@ -54,6 +54,7 @@ class LinearRegression(BaseEstimator):
             X = np.insert(X, 0, 1, axis=1)
         self.coefs_ = pinv(X) @ y
 
+
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
         Predict responses for given samples using fitted estimator
@@ -70,7 +71,7 @@ class LinearRegression(BaseEstimator):
         """
         if self.include_intercept_:
             X = np.insert(X, 0, 1, axis=1)
-        return self.coefs_ @ X
+        return X @ self.coefs_
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -89,4 +90,5 @@ class LinearRegression(BaseEstimator):
         loss : float
             Performance under MSE loss function
         """
-        return loss_functions.mean_square_error(y, X)
+        y_predict = self._predict(X)
+        return loss_functions.mean_square_error(y, y_predict)
